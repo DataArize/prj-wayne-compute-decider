@@ -100,12 +100,4 @@ jobs:
         run: |
           PROJECT_REGION=${{ github.ref == 'refs/heads/main' && secrets.PRODUCTION_GCP_PROJECT_REGION || secrets.DEVELOPMENT_GCP_PROJECT_REGION }}
           SERVICE_ACCOUNT=${{ github.ref == 'refs/heads/main' && secrets.PRODUCTION_GCP_SERVICE_ACCOUNT || secrets.DEVELOPMENT_GCP_SERVICE_ACCOUNT }}
-
-          gcloud functions deploy prj-wayne-compute-decider \
-            --runtime go123 \
-            --entry-point AnalyzeFileHandler \
-            --region $PROJECT_REGION \
-            --gen2 \
-            --service-account="${SERVICE_ACCOUNT} \
-            --allow-unauthenticated \
-            --trigger-http"
+          gcloud functions deploy prj-wayne-compute-decider --runtime=go121 --entry-point=AnalyzeFileHandler --region="$PROJECT_REGION" --gen2 --trigger-http --allow-unauthenticated --service-account="$SERVICE_ACCOUNT"
