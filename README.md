@@ -1,4 +1,4 @@
-# prj-wayne-compute-decider
+# Compute Decider
 
 This service is a lightweight utility designed to **analyze files from remote URLs**. Given a URL, it performs a **HEAD request** to retrieve essential metadata such as **file extension**, **content type**, and **file size**—without downloading the entire file. This is particularly useful for services that need to make decisions based on file characteristics without incurring full data transfer costs.
 
