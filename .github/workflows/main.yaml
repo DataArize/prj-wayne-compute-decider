@@ -106,4 +106,4 @@ jobs:
             --entry-point AnalyzeFileHandler \
             --region $PROJECT_REGION \
             --gen2 \
-            --service-account="${SERVICE_ACCOUNT}" \
+            --service-account="${SERVICE_ACCOUNT}"
