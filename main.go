@@ -2,6 +2,7 @@ package decider
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -16,6 +17,10 @@ const (
 	APPLICATION_JSON = "application/json"
 )
 
+type RequestBody struct {
+	FileUrl string `json:"fileUrl"`
+}
+
 func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	traceId := uuid.New().String()
 	logger, err := zap.NewProduction()
@@ -26,7 +31,21 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Application started", zap.String("traceId", traceId))
 
-	fileUrl := r.URL.Query().Get(FILE_URL_PARAM)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var requestData RequestBody
+	if err := json.Unmarshal(body, &requestData); err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	fileUrl := requestData.FileUrl
+
 	if fileUrl == "" {
 		http.Error(w, "Missing 'fileUrl' parameter", http.StatusBadRequest)
 		logger.Error("Bad Request", zap.String("message", "Missing fileUrl Parameter"))
