@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
@@ -22,6 +23,7 @@ const (
 	APPLICATION_JSON = "application/json"
 	HEAD             = "HEAD"
 	CONTENT_LENGTH   = "Content-Length"
+	FILE_SIZE_BYTES  = 1073741824.0
 )
 
 func NewProcessor(fileUrl string, logger *zap.Logger) *Processor {
@@ -59,7 +61,18 @@ func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap
 
 	defer resp.Body.Close()
 
-	info.FileSize = resp.Header.Get(CONTENT_LENGTH)
+	fileSize := resp.Header.Get(CONTENT_LENGTH)
+
+	fileSizeConverted, err := strconv.ParseInt(fileSize, 10, 64)
+	if err != nil {
+		info.Error = fmt.Sprintf("error parsing content length: %v", err)
+		logger.Error("error parsing content length", zap.Error(err))
+		return info
+	}
+
+	fileSizeGB := float64(fileSizeConverted) / FILE_SIZE_BYTES
+
+	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
 	info.ContentType = resp.Header.Get(CONTENT_TYPE)
 
 	if info.FileExtension == "" && info.ContentType != "" {
