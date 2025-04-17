@@ -2,11 +2,13 @@ package decider
 
 import (
 	"encoding/json"
+	"go/constant"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/processor"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -27,13 +29,21 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
+	defer logger.Sync()
+
 	ctx := r.Context()
 
-	logger.Info("Application started", zap.String("traceId", traceId))
+	logger.Info("Application started",
+		zap.String("applicationName", constants.APPLICATION_NAME),
+		zap.String("traceId", traceId))
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		logger.Error("failed to read request body",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
 		return
 	}
 	defer r.Body.Close()
@@ -41,6 +51,10 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	var requestData RequestBody
 	if err := json.Unmarshal(body, &requestData); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		logger.Error("invalid JSON format",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
 		return
 	}
 
@@ -48,7 +62,10 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	if fileUrl == "" {
 		http.Error(w, "Missing 'fileUrl' parameter", http.StatusBadRequest)
-		logger.Error("Bad Request", zap.String("message", "Missing fileUrl Parameter"))
+		logger.Error("Bad Request",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.String("message", "Missing fileUrl Parameter"))
 		return
 	}
 
@@ -65,4 +82,8 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(result)
+
+	logger.Info("process completed",
+		zap.String("traceId", traceId),
+		zap.String("applicationName", constants.APPLICATION_NAME))
 }
