@@ -18,6 +18,7 @@ import (
 
 func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	traceId := uuid.New().String()
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
