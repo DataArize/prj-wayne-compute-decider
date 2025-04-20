@@ -45,7 +45,14 @@ func (c *Client) LogAuditData(ctx context.Context, event model.AuditEvent) error
 		event.Timestamp = time.Now()
 	}
 
-	return inserter.Put(ctx, []*model.AuditEvent{&event})
+	err := inserter.Put(ctx, []*model.AuditEvent{&event})
+	if err != nil {
+		c.logger.Info("unable to persist data into bigquery",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", c.traceId),
+			zap.Error(err))
+	}
+	return nil
 }
 
 func (c *Client) Close(ctx context.Context) error {
