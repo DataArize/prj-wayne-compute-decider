@@ -13,7 +13,6 @@ import (
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/processor"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"github.com/google/uuid"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request"
 	"go.uber.org/zap"
 )
 
@@ -131,7 +130,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	client.LogAuditData(ctx, model.AuditEvent{
 		TraceID:   traceId,
 		Event:     constants.APPLICATION_COMPLETED_EVENT,
-		Status:    constants.STARTED,
+		Status:    constants.COMPLETED,
 		Timestamp: time.Now(),
 	})
 
