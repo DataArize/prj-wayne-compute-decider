@@ -17,18 +17,10 @@ import (
 type Processor struct {
 	traceId string
 	logger  *zap.Logger
-	fileUrl string
+	fileUrl []string
 }
 
-const (
-	CONTENT_TYPE     = "Content-Type"
-	APPLICATION_JSON = "application/json"
-	HEAD             = "HEAD"
-	CONTENT_LENGTH   = "Content-Length"
-	FILE_SIZE_BYTES  = 1073741824.0
-)
-
-func NewProcessor(traceId string, fileUrl string, logger *zap.Logger) *Processor {
+func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger) *Processor {
 	return &Processor{
 		traceId: traceId,
 		logger:  logger,
@@ -36,12 +28,22 @@ func NewProcessor(traceId string, fileUrl string, logger *zap.Logger) *Processor
 	}
 }
 
-func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap.Logger) model.FileInfo {
+func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []model.FileInfo {
+	var requests []model.FileInfo
+	for _, fileUrl := range fileUrls {
+		fileInfo := p.analyzeFile(ctx, fileUrl)
+		requests = append(requests, fileInfo)
+	}
+
+	return requests
+}
+
+func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
 	var info model.FileInfo
 
 	parsedUrl, err := url.Parse(fileUrl)
 	if err != nil {
-		logger.Error("Invalid URL",
+		p.logger.Error("Invalid URL",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -51,10 +53,10 @@ func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap
 
 	info.FileExtension = path.Ext(parsedUrl.Path)
 
-	req, err := http.NewRequestWithContext(ctx, HEAD, fileUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, constants.HEAD, fileUrl, nil)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to create HEAD request: %v", err)
-		logger.Error("unable to create HEAD Request",
+		p.logger.Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -64,7 +66,7 @@ func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to execute HEAD request: %v", err)
-		logger.Error("unable to create HEAD Request",
+		p.logger.Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -73,22 +75,23 @@ func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap
 
 	defer resp.Body.Close()
 
-	fileSize := resp.Header.Get(CONTENT_LENGTH)
+	fileSize := resp.Header.Get(constants.CONTENT_LENGTH)
 
 	fileSizeConverted, err := strconv.ParseInt(fileSize, 10, 64)
 	if err != nil {
 		info.Error = fmt.Sprintf("error parsing content length: %v", err)
-		logger.Error("error parsing content length",
+		p.logger.Error("error parsing content length",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
 		return info
 	}
 
-	fileSizeGB := float64(fileSizeConverted) / FILE_SIZE_BYTES
+	fileSizeGB := float64(fileSizeConverted) / constants.FILE_SIZE_BYTES
 
 	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
-	info.ContentType = resp.Header.Get(CONTENT_TYPE)
+	info.ContentType = resp.Header.Get(constants.CONTENT_TYPE)
+	info.TraceId = p.traceId
 
 	if info.FileExtension == "" && info.ContentType != "" {
 		parts := strings.Split(info.ContentType, "/")
@@ -97,7 +100,7 @@ func (p *Processor) AnalyzeFile(ctx context.Context, fileUrl string, logger *zap
 		}
 	}
 
-	logger.Info("Process completed",
+	p.logger.Info("Process completed",
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", p.traceId),
 		zap.String("extension", info.FileExtension), zap.String("file size", info.FileSize),
