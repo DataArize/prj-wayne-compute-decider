@@ -26,4 +26,10 @@ const (
 	FILE_URL_MISSING            = "compute_decider.file_url_missing"
 	ERROR_FETCHING_FILE_SIZE    = "compute_decider.error_fetching_file_size"
 	APPLICATION_COMPLETED_EVENT = "compute_decider.application_completed"
+
+	// MAX FILE SIZE
+	MAX_FILE_SIZE = 25
+
+	// FILE EXTENSIONS
+	GZ = ".gz"
 )

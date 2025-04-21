@@ -53,10 +53,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client.LogAuditData(ctx, model.AuditEvent{
-		TraceID:   traceId,
-		Event:     constants.APPLICATION_STARTED_EVENT,
-		Status:    constants.STARTED,
-		Timestamp: time.Now(),
+		TraceID:      traceId,
+		ContractId:   traceId,
+		Event:        constants.APPLICATION_STARTED_EVENT,
+		Status:       constants.STARTED,
+		Timestamp:    time.Now(),
+		FunctionName: constants.APPLICATION_NAME,
 	})
 
 	body, err := io.ReadAll(r.Body)
@@ -67,10 +69,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			zap.String("traceId", traceId),
 			zap.Error(err))
 		client.LogAuditData(ctx, model.AuditEvent{
-			TraceID:   traceId,
-			Event:     constants.REQUEST_BODY_FAILED,
-			Status:    constants.FAILED,
-			Timestamp: time.Now(),
+			TraceID:      traceId,
+			ContractId:   traceId,
+			Event:        constants.REQUEST_BODY_FAILED,
+			Status:       constants.FAILED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
 		})
 
 		return
@@ -86,10 +90,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			zap.Error(err))
 
 		client.LogAuditData(ctx, model.AuditEvent{
-			TraceID:   traceId,
-			Event:     constants.INVALID_JSON_FORMAT,
-			Status:    constants.FAILED,
-			Timestamp: time.Now(),
+			TraceID:      traceId,
+			ContractId:   traceId,
+			Event:        constants.INVALID_JSON_FORMAT,
+			Status:       constants.FAILED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
 		})
 
 		return
@@ -105,10 +111,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			zap.String("message", "Missing fileUrl Parameter"))
 
 		client.LogAuditData(ctx, model.AuditEvent{
-			TraceID:   traceId,
-			Event:     constants.FILE_URL_MISSING,
-			Status:    constants.FAILED,
-			Timestamp: time.Now(),
+			TraceID:      traceId,
+			ContractId:   traceId,
+			Event:        constants.FILE_URL_MISSING,
+			Status:       constants.FAILED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
 		})
 
 		return
@@ -126,10 +134,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 				zap.String("error", res.Error))
 
 			client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:   traceId,
-				Event:     constants.ERROR_FETCHING_FILE_SIZE,
-				Status:    constants.FAILED,
-				Timestamp: time.Now(),
+				TraceID:      traceId,
+				ContractId:   traceId,
+				Event:        constants.ERROR_FETCHING_FILE_SIZE,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
 			})
 
 		}
@@ -138,10 +148,12 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 
 	client.LogAuditData(ctx, model.AuditEvent{
-		TraceID:   traceId,
-		Event:     constants.APPLICATION_COMPLETED_EVENT,
-		Status:    constants.COMPLETED,
-		Timestamp: time.Now(),
+		TraceID:      traceId,
+		ContractId:   traceId,
+		Event:        constants.APPLICATION_COMPLETED_EVENT,
+		Status:       constants.COMPLETED,
+		Timestamp:    time.Now(),
+		FunctionName: constants.APPLICATION_NAME,
 	})
 
 	logger.Info("process completed",

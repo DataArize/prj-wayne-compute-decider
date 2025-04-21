@@ -33,9 +33,33 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
 		requests = append(requests, fileInfo)
+
 	}
 
 	return requests
+}
+
+func (p *Processor) decideCompute(request model.FileInfo) error {
+	ext := request.FileExtension
+	estimatedFileSize := 4 * request.FileSizeFloat
+	switch {
+	case ext == constants.GZ:
+		p.logger.Info("File extension is GZ",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.String("fileSize", request.FileSize))
+		return nil
+	case estimatedFileSize > constants.MAX_FILE_SIZE:
+		p.logger.Info("file size is greater than max file size for cloud run",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.String("fileName", request.FileSize),
+			zap.Int("maxFileSize", constants.MAX_FILE_SIZE))
+
+	default:
+		return nil
+	}
+	return nil
 }
 
 func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
@@ -88,7 +112,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 	}
 
 	fileSizeGB := float64(fileSizeConverted) / constants.FILE_SIZE_BYTES
-
+	info.FileSizeFloat = fileSizeGB
 	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
 	info.ContentType = resp.Header.Get(constants.CONTENT_TYPE)
 	info.TraceId = p.traceId
