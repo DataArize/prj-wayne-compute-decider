@@ -32,6 +32,15 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		zap.String("traceId", traceId))
 
 	projectId := os.Getenv(constants.PROJECT_ID)
+	if projectId == "" {
+		http.Error(w, "project id not specified", http.StatusBadRequest)
+		logger.Error("project Id not specified",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
+		return
+
+	}
 
 	client, err := bigquery.NewClient(ctx, logger, projectId, traceId)
 	if err != nil {
