@@ -10,6 +10,8 @@ const (
 	HEAD             = "HEAD"
 	CONTENT_LENGTH   = "Content-Length"
 	FILE_SIZE_BYTES  = 1073741824.0
+	REGION           = "us-central1"
+	JOB_NAME         = "JOB_NAME"
 
 	// ENV CONSTANTS
 	PROJECT_ID = "GCP_PROJECT_ID"

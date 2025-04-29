@@ -4,6 +4,7 @@ import "time"
 
 type FileInfo struct {
 	TraceId       string  `json:"traceid"`
+	FIleUrl       string  `json:"fileUrl"`
 	FileExtension string  `json:"fileExtenstion,omitempty"`
 	FileSize      string  `json:"fileSize,omitempty"`
 	FileSizeFloat float64 `json:"-"`

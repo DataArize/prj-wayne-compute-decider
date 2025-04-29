@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/compute"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/processor"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
@@ -32,6 +33,8 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		zap.String("traceId", traceId))
 
 	projectId := os.Getenv(constants.PROJECT_ID)
+	region := constants.REGION
+	jobName := os.Getenv(constants.JOB_NAME)
 	if projectId == "" {
 		http.Error(w, "project id not specified", http.StatusBadRequest)
 		logger.Error("project Id not specified",
@@ -46,6 +49,16 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "bigquery client creation failed", http.StatusBadRequest)
 		logger.Error("biquery client creation failed",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
+		return
+	}
+
+	compute, err := compute.NewCompute(ctx, logger, traceId)
+	if err != nil {
+		http.Error(w, "unable to create cloud run job client", http.StatusBadRequest)
+		logger.Error("unable to create cloud run job client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -126,7 +139,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processor := processor.NewProcessor(traceId, fileUrl, logger, client)
+	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, region, jobName)
 
 	result := processor.AnalyzeFileUrls(ctx, fileUrl)
 

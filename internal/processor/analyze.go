@@ -11,24 +11,33 @@ import (
 	"time"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/compute"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"go.uber.org/zap"
 )
 
 type Processor struct {
-	traceId string
-	logger  *zap.Logger
-	fileUrl []string
-	client  *bigquery.Client
+	traceId       string
+	logger        *zap.Logger
+	fileUrl       []string
+	client        *bigquery.Client
+	compute       *compute.Compute
+	projectId     string
+	projectRegion string
+	jobName       string
 }
 
-func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client) *Processor {
+func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string) *Processor {
 	return &Processor{
-		traceId: traceId,
-		logger:  logger,
-		fileUrl: fileUrl,
-		client:  client,
+		traceId:       traceId,
+		logger:        logger,
+		fileUrl:       fileUrl,
+		client:        client,
+		compute:       compute,
+		projectId:     projectId,
+		projectRegion: region,
+		jobName:       jobName,
 	}
 }
 
@@ -62,6 +71,11 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
+		args := []string{request.TraceId, request.FIleUrl}
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
+		if err != nil {
+			return err
+		}
 		return nil
 	case estimatedFileSize > constants.MAX_FILE_SIZE:
 		p.logger.Info("file size is greater than max file size for cloud run",
@@ -130,6 +144,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
 	info.ContentType = resp.Header.Get(constants.CONTENT_TYPE)
 	info.TraceId = p.traceId
+	info.FIleUrl = fileUrl
 
 	if info.FileExtension == "" && info.ContentType != "" {
 		parts := strings.Split(info.ContentType, "/")
