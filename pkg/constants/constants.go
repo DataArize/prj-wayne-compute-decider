@@ -37,6 +37,6 @@ const (
 	GZ = ".gz"
 
 	// JOB NAME
-	CLOUD_RUN_JOB_NAME = "file-streamer"
+	CLOUD_RUN_JOB_NAME = "prj-wayne-file-streamer"
 	JOB_PREFIX         = "projects/%s/locations/%s/jobs/%s"
 )
