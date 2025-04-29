@@ -107,7 +107,6 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	fileUrl := requestData.FileUrl
 
 	if len(fileUrl) == 0 {
-		http.Error(w, "Missing 'fileUrl' parameter", http.StatusBadRequest)
 		logger.Error("Bad Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
@@ -123,6 +122,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Message:      "missing fileUrl Parameter",
 		})
 
+		http.Error(w, "Missing 'fileUrl' parameter", http.StatusBadRequest)
 		return
 	}
 
@@ -147,6 +147,8 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 				Message:      res.Error,
 			})
 
+			http.Error(w, "error fetching file size", http.StatusInternalServerError)
+			return
 		}
 	}
 
