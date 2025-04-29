@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
@@ -35,14 +36,14 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
-		p.decideCompute(fileInfo)
+		p.decideCompute(ctx, fileInfo)
 		requests = append(requests, fileInfo)
 	}
 
 	return requests
 }
 
-func (p *Processor) decideCompute(request model.FileInfo) error {
+func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) error {
 	ext := request.FileExtension
 	estimatedFileSize := 4 * request.FileSizeFloat
 	switch {
@@ -51,6 +52,16 @@ func (p *Processor) decideCompute(request model.FileInfo) error {
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.String("fileSize", request.FileSize))
+
+		p.client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      p.traceId,
+			ContractId:   p.traceId,
+			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
+			Status:       constants.STARTED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
+		})
+
 		return nil
 	case estimatedFileSize > constants.MAX_FILE_SIZE:
 		p.logger.Info("file size is greater than max file size for cloud run",

@@ -25,6 +25,7 @@ const (
 	INVALID_JSON_FORMAT         = "compute_decider.invalid_json_format"
 	FILE_URL_MISSING            = "compute_decider.file_url_missing"
 	ERROR_FETCHING_FILE_SIZE    = "compute_decider.error_fetching_file_size"
+	TRIGGER_CLOUD_RUN_JOB       = "compute_decider.trigger_cloud_run_job"
 	APPLICATION_COMPLETED_EVENT = "compute_decider.application_completed"
 
 	// MAX FILE SIZE
@@ -32,4 +33,8 @@ const (
 
 	// FILE EXTENSIONS
 	GZ = ".gz"
+
+	// JOB NAME
+	CLOUD_RUN_JOB_NAME = "file-streamer"
+	JOB_PREFIX         = "projects/%s/locations/%s/jobs/%s"
 )
