@@ -59,6 +59,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		Status:       constants.STARTED,
 		Timestamp:    time.Now(),
 		FunctionName: constants.APPLICATION_NAME,
+		Message:      "application started",
 	})
 
 	body, err := io.ReadAll(r.Body)
@@ -75,6 +76,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Status:       constants.FAILED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
+			Message:      err.Error(),
 		})
 
 		return
@@ -96,6 +98,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Status:       constants.FAILED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
+			Message:      err.Error(),
 		})
 
 		return
@@ -117,12 +120,13 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Status:       constants.FAILED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
+			Message:      "missing fileUrl Parameter",
 		})
 
 		return
 	}
 
-	processor := processor.NewProcessor(traceId, fileUrl, logger)
+	processor := processor.NewProcessor(traceId, fileUrl, logger, client)
 
 	result := processor.AnalyzeFileUrls(ctx, fileUrl)
 
@@ -140,6 +144,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 				Status:       constants.FAILED,
 				Timestamp:    time.Now(),
 				FunctionName: constants.APPLICATION_NAME,
+				Message:      res.Error,
 			})
 
 		}
@@ -154,6 +159,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		Status:       constants.COMPLETED,
 		Timestamp:    time.Now(),
 		FunctionName: constants.APPLICATION_NAME,
+		Message:      "application completed",
 	})
 
 	logger.Info("process completed",

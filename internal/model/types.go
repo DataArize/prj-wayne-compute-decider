@@ -19,6 +19,7 @@ type AuditEvent struct {
 	Timestamp    time.Time `bigquery:"timestamp"`
 	FunctionName string    `bigquery:"functionName"`
 	Environment  string    `bigquery:"environment"`
+	Message      string    `bigquery:"message"`
 }
 
 type RequestBody struct {

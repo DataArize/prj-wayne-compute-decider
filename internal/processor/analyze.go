@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"go.uber.org/zap"
@@ -18,13 +19,15 @@ type Processor struct {
 	traceId string
 	logger  *zap.Logger
 	fileUrl []string
+	client  *bigquery.Client
 }
 
-func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger) *Processor {
+func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client) *Processor {
 	return &Processor{
 		traceId: traceId,
 		logger:  logger,
 		fileUrl: fileUrl,
+		client:  client,
 	}
 }
 
@@ -33,7 +36,6 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
 		requests = append(requests, fileInfo)
-
 	}
 
 	return requests
@@ -71,7 +73,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
-		info.Error = fmt.Sprintf("Invalid URL : %v", err)
+		info.Error = fmt.Sprintf("Invalid URL %s: %v", fileUrl, err)
 		return info
 	}
 
@@ -79,7 +81,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 
 	req, err := http.NewRequestWithContext(ctx, constants.HEAD, fileUrl, nil)
 	if err != nil {
-		info.Error = fmt.Sprintf("Failed to create HEAD request: %v", err)
+		info.Error = fmt.Sprintf("Failed to create HEAD request URL: %s, error : %v", fileUrl, err)
 		p.logger.Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
@@ -89,7 +91,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		info.Error = fmt.Sprintf("Failed to execute HEAD request: %v", err)
+		info.Error = fmt.Sprintf("Failed to execute HEAD request URL: %s, error : %v", fileUrl, err)
 		p.logger.Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
@@ -103,7 +105,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 
 	fileSizeConverted, err := strconv.ParseInt(fileSize, 10, 64)
 	if err != nil {
-		info.Error = fmt.Sprintf("error parsing content length: %v", err)
+		info.Error = fmt.Sprintf("error parsing content length, fileURL: %s, error: %v", fileUrl, err)
 		p.logger.Error("error parsing content length",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
