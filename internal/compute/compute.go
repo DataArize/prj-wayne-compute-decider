@@ -45,7 +45,6 @@ func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, 
 		Overrides: &runpb.RunJobRequest_Overrides{
 			ContainerOverrides: []*runpb.RunJobRequest_Overrides_ContainerOverride{
 				{
-					Name: constants.CLOUD_RUN_JOB_NAME,
 					Args: args,
 				},
 			},
