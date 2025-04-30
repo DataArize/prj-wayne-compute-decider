@@ -3,13 +3,15 @@ package model
 import "time"
 
 type FileInfo struct {
-	TraceId       string  `json:"traceid"`
-	FIleUrl       string  `json:"fileUrl"`
-	FileExtension string  `json:"fileExtenstion,omitempty"`
-	FileSize      string  `json:"fileSize,omitempty"`
-	FileSizeFloat float64 `json:"-"`
-	ContentType   string  `json:"contentType,omitempty"`
-	Error         string  `json:"error,omitempty"`
+	TraceId        string  `json:"traceid"`
+	FIleUrl        string  `json:"fileUrl"`
+	FileName       string  `json:"fileName"`
+	RangeSupported bool    `json:"rangeSupported"`
+	FileExtension  string  `json:"fileExtenstion,omitempty"`
+	FileSize       string  `json:"fileSize,omitempty"`
+	FileSizeFloat  float64 `json:"-"`
+	ContentType    string  `json:"contentType,omitempty"`
+	Error          string  `json:"error,omitempty"`
 }
 
 type AuditEvent struct {

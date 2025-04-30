@@ -90,6 +90,14 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 	return nil
 }
 
+func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
+	parsedUrl, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	return path.Base(parsedUrl.Path), nil
+}
+
 func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
 	var info model.FileInfo
 
@@ -128,6 +136,24 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 	defer resp.Body.Close()
 
 	fileSize := resp.Header.Get(constants.CONTENT_LENGTH)
+	acceptRanges := resp.Header.Get(constants.RANGE_SUPPORTED)
+	if acceptRanges == constants.BYTES {
+		info.RangeSupported = true
+	} else {
+		info.RangeSupported = false
+	}
+
+	fileName, err := p.getFileNameFromURL(fileUrl)
+	if err != nil {
+		info.Error = fmt.Sprintf("error extracting file name, fileURL: %s, error: %v", fileUrl, err)
+		p.logger.Error("error extracting file name",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.Error(err))
+		return info
+	}
+
+	info.FileName = fileName
 
 	fileSizeConverted, err := strconv.ParseInt(fileSize, 10, 64)
 	if err != nil {
