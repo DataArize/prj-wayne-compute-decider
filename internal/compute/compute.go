@@ -35,7 +35,7 @@ func NewCompute(ctx context.Context, logger *zap.Logger, traceId string) (*Compu
 }
 
 func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, region string, jobName string, args []string) error {
-	name := fmt.Sprintf(constants.JOB_PREFIX, projectId, region, jobName)
+	name := fmt.Sprintf(constants.JOB_PREFIX, projectId, region, constants.CLOUD_RUN_JOB_NAME)
 	c.logger.Info("attempting to trigger cloud run job",
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
