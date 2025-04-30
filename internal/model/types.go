@@ -10,6 +10,7 @@ type FileInfo struct {
 	FileExtension  string  `json:"fileExtenstion,omitempty"`
 	FileSize       string  `json:"fileSize,omitempty"`
 	FileSizeFloat  float64 `json:"-"`
+	FileSizeBytes  string  `json:"-"`
 	ContentType    string  `json:"contentType,omitempty"`
 	Error          string  `json:"error,omitempty"`
 }

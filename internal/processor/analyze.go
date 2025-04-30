@@ -71,7 +71,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
-		args := []string{request.TraceId, request.FIleUrl}
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
 		if err != nil {
 			return err
@@ -167,6 +167,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 
 	fileSizeGB := float64(fileSizeConverted) / constants.FILE_SIZE_BYTES
 	info.FileSizeFloat = fileSizeGB
+	info.FileSizeBytes = fileSize
 	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
 	info.ContentType = resp.Header.Get(constants.CONTENT_TYPE)
 	info.TraceId = p.traceId
