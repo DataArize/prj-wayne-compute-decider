@@ -39,6 +39,7 @@ func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, 
 	c.logger.Info("attempting to trigger cloud run job",
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
+		zap.String("region", region),
 		zap.String("jobName", constants.CLOUD_RUN_JOB_NAME),
 		zap.String("name", name))
 

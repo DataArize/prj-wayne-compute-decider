@@ -33,7 +33,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		zap.String("traceId", traceId))
 
 	projectId := os.Getenv(constants.PROJECT_ID)
-	region := constants.REGION
+	projectRegion := constants.REGION
 	jobName := os.Getenv(constants.JOB_NAME)
 	if projectId == "" {
 		http.Error(w, "project id not specified", http.StatusBadRequest)
@@ -139,7 +139,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, region, jobName)
+	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, projectRegion, jobName)
 
 	result := processor.AnalyzeFileUrls(ctx, fileUrl)
 
