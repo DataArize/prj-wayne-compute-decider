@@ -15,6 +15,16 @@ type FileInfo struct {
 	Error          string  `json:"error,omitempty"`
 }
 
+type Arguments struct {
+	TraceId        string `bigquery:"traceid"`
+	FIleUrl        string `bigquery:"fileUrl"`
+	FileName       string `bigquery:"fileName"`
+	RangeSupported bool   `bigquery:"rangeSupported"`
+	FileExtension  string `bigquery:"fileExtenstion,omitempty"`
+	FileSize       string `bigquery:"fileSize,omitempty"`
+	ContentType    string `bigquery:"contentType,omitempty"`
+}
+
 type AuditEvent struct {
 	TraceID      string    `bigquery:"traceid"`
 	ContractId   string    `json:"contractId"`
@@ -37,6 +47,7 @@ type ContractFileEvent struct {
 	Status       string    `bigquery:"status"` // can be null
 	Timestamp    time.Time `bigquery:"timestamp"`
 	FunctionName string    `bigquery:"functionName"` // can be null
-	Arguments    FileInfo  `bigquery:"arguments"`    // nested struct
+	Arguments    Arguments `bigquery:"arguments"`    // nested struct
 	Environment  string    `bigquery:"environment"`  // can be null
 }
+

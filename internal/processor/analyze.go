@@ -106,13 +106,23 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
+		arguments := model.Arguments{
+			TraceId:        p.traceId,
+			FIleUrl:        request.FIleUrl,
+			FileName:       request.FileName,
+			RangeSupported: request.RangeSupported,
+			FileExtension:  request.FileExtension,
+			FileSize:       request.FileSize,
+			ContentType:    request.ContentType,
+		}
+
 		event := model.ContractFileEvent{
 			TraceID:      request.TraceId,
 			ContractID:   request.TraceId,
 			Status:       constants.STARTED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
-			Arguments:    request,
+			Arguments:    arguments,
 			Environment:  constants.ENVIRONMENT,
 		}
 
