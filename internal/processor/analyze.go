@@ -69,7 +69,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			TraceID:      p.traceId,
 			ContractId:   p.traceId,
 			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
-			Status:       constants.STARTED,
+			Status:       constants.IN_PROGRESS,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
 		})
@@ -105,7 +105,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			TraceID:      p.traceId,
 			ContractId:   p.traceId,
 			Event:        constants.TRIGGER_CLOUD_BATCH_JOB,
-			Status:       constants.STARTED,
+			Status:       constants.IN_PROGRESS,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
 		})
