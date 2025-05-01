@@ -20,9 +20,9 @@ type Arguments struct {
 	FIleUrl        string `bigquery:"fileUrl"`
 	FileName       string `bigquery:"fileName"`
 	RangeSupported bool   `bigquery:"rangeSupported"`
-	FileExtension  string `bigquery:"fileExtenstion,omitempty"`
-	FileSize       string `bigquery:"fileSize,omitempty"`
-	ContentType    string `bigquery:"contentType,omitempty"`
+	FileExtension  string `bigquery:"fileExtenstion"`
+	FileSize       string `bigquery:"fileSize"`
+	ContentType    string `bigquery:"contentType"`
 }
 
 type AuditEvent struct {

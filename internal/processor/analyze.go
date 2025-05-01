@@ -45,7 +45,10 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
-		p.decideCompute(ctx, fileInfo)
+		err := p.decideCompute(ctx, fileInfo)
+		if err != nil {
+			fileInfo.Error = err.Error()
+		}
 		requests = append(requests, fileInfo)
 	}
 
