@@ -34,18 +34,20 @@ func NewCompute(ctx context.Context, logger *zap.Logger, traceId string) (*Compu
 	}, err
 }
 
-func (c *Compute) triggerFileStreamerJob(ctx context.Context, projectId string, region string, jobName string, args []string) error {
+func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, region string, jobName string, args []string) error {
+	name := fmt.Sprintf(constants.JOB_PREFIX, projectId, region, constants.CLOUD_RUN_JOB_NAME)
 	c.logger.Info("attempting to trigger cloud run job",
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
-		zap.String("jobName", constants.CLOUD_RUN_JOB_NAME))
+		zap.String("region", region),
+		zap.String("jobName", constants.CLOUD_RUN_JOB_NAME),
+		zap.String("name", name))
 
 	req := &runpb.RunJobRequest{
-		Name: fmt.Sprintf(constants.JOB_PREFIX, projectId, region, jobName),
+		Name: name,
 		Overrides: &runpb.RunJobRequest_Overrides{
 			ContainerOverrides: []*runpb.RunJobRequest_Overrides_ContainerOverride{
 				{
-					Name: constants.CLOUD_RUN_JOB_NAME,
 					Args: args,
 				},
 			},

@@ -11,24 +11,33 @@ import (
 	"time"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/compute"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"go.uber.org/zap"
 )
 
 type Processor struct {
-	traceId string
-	logger  *zap.Logger
-	fileUrl []string
-	client  *bigquery.Client
+	traceId       string
+	logger        *zap.Logger
+	fileUrl       []string
+	client        *bigquery.Client
+	compute       *compute.Compute
+	projectId     string
+	projectRegion string
+	jobName       string
 }
 
-func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client) *Processor {
+func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string) *Processor {
 	return &Processor{
-		traceId: traceId,
-		logger:  logger,
-		fileUrl: fileUrl,
-		client:  client,
+		traceId:       traceId,
+		logger:        logger,
+		fileUrl:       fileUrl,
+		client:        client,
+		compute:       compute,
+		projectId:     projectId,
+		projectRegion: region,
+		jobName:       jobName,
 	}
 }
 
@@ -62,6 +71,11 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
+		if err != nil {
+			return err
+		}
 		return nil
 	case estimatedFileSize > constants.MAX_FILE_SIZE:
 		p.logger.Info("file size is greater than max file size for cloud run",
@@ -74,6 +88,14 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		return nil
 	}
 	return nil
+}
+
+func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
+	parsedUrl, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	return path.Base(parsedUrl.Path), nil
 }
 
 func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
@@ -114,6 +136,24 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 	defer resp.Body.Close()
 
 	fileSize := resp.Header.Get(constants.CONTENT_LENGTH)
+	acceptRanges := resp.Header.Get(constants.RANGE_SUPPORTED)
+	if acceptRanges == constants.BYTES {
+		info.RangeSupported = true
+	} else {
+		info.RangeSupported = false
+	}
+
+	fileName, err := p.getFileNameFromURL(fileUrl)
+	if err != nil {
+		info.Error = fmt.Sprintf("error extracting file name, fileURL: %s, error: %v", fileUrl, err)
+		p.logger.Error("error extracting file name",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.Error(err))
+		return info
+	}
+
+	info.FileName = fileName
 
 	fileSizeConverted, err := strconv.ParseInt(fileSize, 10, 64)
 	if err != nil {
@@ -127,9 +167,11 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 
 	fileSizeGB := float64(fileSizeConverted) / constants.FILE_SIZE_BYTES
 	info.FileSizeFloat = fileSizeGB
+	info.FileSizeBytes = fileSize
 	info.FileSize = fmt.Sprintf("%.2f GB", fileSizeGB)
 	info.ContentType = resp.Header.Get(constants.CONTENT_TYPE)
 	info.TraceId = p.traceId
+	info.FIleUrl = fileUrl
 
 	if info.FileExtension == "" && info.ContentType != "" {
 		parts := strings.Split(info.ContentType, "/")

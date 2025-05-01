@@ -6,10 +6,14 @@ const (
 	TABLE_ID         = "contact_trace_logs"
 	FILE_URL_PARAM   = "fileUrl"
 	CONTENT_TYPE     = "Content-Type"
+	RANGE_SUPPORTED  = "Accept-Ranges"
 	APPLICATION_JSON = "application/json"
 	HEAD             = "HEAD"
 	CONTENT_LENGTH   = "Content-Length"
 	FILE_SIZE_BYTES  = 1073741824.0
+	REGION           = "us-central1"
+	JOB_NAME         = "JOB_NAME"
+	BYTES            = "bytes"
 
 	// ENV CONSTANTS
 	PROJECT_ID = "GCP_PROJECT_ID"
@@ -35,6 +39,6 @@ const (
 	GZ = ".gz"
 
 	// JOB NAME
-	CLOUD_RUN_JOB_NAME = "file-streamer"
+	CLOUD_RUN_JOB_NAME = "prj-wayne-file-streamer"
 	JOB_PREFIX         = "projects/%s/locations/%s/jobs/%s"
 )
