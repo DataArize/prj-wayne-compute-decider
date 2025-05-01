@@ -75,7 +75,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		})
 
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
-		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
 		if err != nil {
 			p.logger.Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
