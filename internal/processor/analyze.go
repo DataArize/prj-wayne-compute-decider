@@ -159,6 +159,28 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			return err
 
 		}
+
+		args := []string{request.TraceId, request.FIleUrl, request.FileName}
+		err = p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
+		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+
+			p.client.LogAuditData(ctx, model.AuditEvent{
+				TraceID:      p.traceId,
+				ContractId:   p.traceId,
+				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
+			})
+
+			return err
+		}
+
 		return nil
 
 	default:
