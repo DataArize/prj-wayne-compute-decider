@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -119,13 +120,23 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			ContentType:    request.ContentType,
 		}
 
+		argsJSON, error := json.Marshal(arguments)
+		if error != nil {
+			p.logger.Error("failed to marshal arguments to JSON",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.Any("arguments", arguments),
+				zap.Error(error))
+			return fmt.Errorf("failed to marshal arguments: %w", error)
+		}
+
 		event := model.ContractFileEvent{
 			TraceID:      request.TraceId,
 			ContractID:   request.TraceId,
 			Status:       constants.STARTED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
-			Arguments:    arguments,
+			Arguments:    string(argsJSON),
 			Environment:  constants.ENVIRONMENT,
 		}
 

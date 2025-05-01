@@ -47,7 +47,7 @@ type ContractFileEvent struct {
 	Status       string    `bigquery:"status"` // can be null
 	Timestamp    time.Time `bigquery:"timestamp"`
 	FunctionName string    `bigquery:"functionName"` // can be null
-	Arguments    Arguments `bigquery:"arguments"`    // nested struct
+	Arguments    string    `bigquery:"arguments"`    // nested struct
 	Environment  string    `bigquery:"environment"`  // can be null
 }
 
