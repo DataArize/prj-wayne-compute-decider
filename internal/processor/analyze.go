@@ -54,9 +54,8 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 
 func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) error {
 	ext := request.FileExtension
-	estimatedFileSize := 4 * request.FileSizeFloat
-	switch {
-	case ext == constants.GZ:
+	switch ext {
+	case constants.GZ:
 		p.logger.Info("File extension is GZ",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
@@ -74,20 +73,73 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
 		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+
+			p.client.LogAuditData(ctx, model.AuditEvent{
+				TraceID:      p.traceId,
+				ContractId:   p.traceId,
+				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
+			})
+
 			return err
 		}
 		return nil
-	case estimatedFileSize > constants.MAX_FILE_SIZE:
-		p.logger.Info("file size is greater than max file size for cloud run",
+	case constants.ZIP:
+		p.logger.Info("File extension is ZIP",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
-			zap.String("fileName", request.FileSize),
-			zap.Int("maxFileSize", constants.MAX_FILE_SIZE))
+			zap.String("fileSize", request.FileSize))
+
+		p.client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      p.traceId,
+			ContractId:   p.traceId,
+			Event:        constants.TRIGGER_CLOUD_BATCH_JOB,
+			Status:       constants.STARTED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
+		})
+
+		event := model.ContractFileEvent{
+			TraceID:      request.TraceId,
+			ContractID:   request.TraceId,
+			Status:       constants.STARTED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
+			Arguments:    request,
+			Environment:  constants.ENVIRONMENT,
+		}
+
+		err := p.client.ContractFileQueue(ctx, event)
+		if err != nil {
+			p.logger.Error("error inserting data into `contract_file_queue` table",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+
+			p.client.LogAuditData(ctx, model.AuditEvent{
+				TraceID:      p.traceId,
+				ContractId:   p.traceId,
+				Event:        constants.FAILED_TRIGGER_CLOUD_BATCH_JOB,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
+			})
+			return err
+
+		}
+		return nil
 
 	default:
 		return nil
 	}
-	return nil
 }
 
 func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {

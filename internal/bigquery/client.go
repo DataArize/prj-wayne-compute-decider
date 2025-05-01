@@ -55,6 +55,23 @@ func (c *Client) LogAuditData(ctx context.Context, event model.AuditEvent) error
 	return nil
 }
 
+func (c *Client) ContractFileQueue(ctx context.Context, event model.ContractFileEvent) error {
+	inserter := c.client.Dataset(constants.DATASET_ID).Table(constants.CONTRACT_QUEUE_TABLE).Inserter()
+
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+
+	err := inserter.Put(ctx, []*model.ContractFileEvent{&event})
+	if err != nil {
+		c.logger.Info("unable to persist data into bigquery",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", c.traceId),
+			zap.Error(err))
+	}
+	return nil
+}
+
 func (c *Client) Close(ctx context.Context) error {
 	_, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
