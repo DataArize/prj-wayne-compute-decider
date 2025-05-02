@@ -1,3 +1,5 @@
+// Package processor provides logic to analyze files and determine whether to trigger
+// compute jobs based on file metadata such as size and extension.
 package processor
 
 import (
@@ -18,6 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Processor coordinates the logic for analyzing files and deciding compute actions.
 type Processor struct {
 	traceId       string
 	logger        *zap.Logger
@@ -29,6 +32,7 @@ type Processor struct {
 	jobName       string
 }
 
+// NewProcessor creates and returns a new instance of Processor with all required dependencies.
 func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string) *Processor {
 	return &Processor{
 		traceId:       traceId,
@@ -42,6 +46,8 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 	}
 }
 
+// AnalyzeFileUrls iterates over the provided file URLs, analyzes each one,
+// and determines whether to trigger a compute job.
 func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
@@ -56,6 +62,8 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 	return requests
 }
 
+// decideCompute determines the compute action to take based on file extension (e.g. .gz or .zip).
+// It logs appropriate audit events and triggers cloud run jobs or queues messages.
 func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) error {
 	ext := request.FileExtension
 	switch ext {
@@ -188,6 +196,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 	}
 }
 
+// getFileNameFromURL extracts the file name from a URL path.
 func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
 	parsedUrl, err := url.Parse(rawURL)
 	if err != nil {
@@ -196,6 +205,8 @@ func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
 	return path.Base(parsedUrl.Path), nil
 }
 
+// analyzeFile performs a HEAD request to gather metadata about the file,
+// such as content length, content type, extension, and range support.
 func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
 	var info model.FileInfo
 

@@ -1,3 +1,6 @@
+// Package decider contains the HTTP handler for analyzing file URLs.
+// It serves as an entry point for the Cloud Function and coordinates logging,
+// validation, and delegation to internal components.
 package decider
 
 import (
@@ -17,9 +20,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// AnalyzeFileHandler is the main HTTP handler function for the Cloud Function.
+// It validates the incoming request, initializes required clients, logs audit events,
+// and delegates file analysis to the processor. Results are returned as a JSON response.
 func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	traceId := uuid.New().String()
 
+	// Initialize production logger
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
@@ -32,6 +39,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", traceId))
 
+	// Load configuration from environment variables and constants
 	projectId := os.Getenv(constants.PROJECT_ID)
 	projectRegion := constants.REGION
 	jobName := os.Getenv(constants.JOB_NAME)
@@ -45,6 +53,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// Initialize BigQuery client
 	client, err := bigquery.NewClient(ctx, logger, projectId, traceId)
 	if err != nil {
 		http.Error(w, "bigquery client creation failed", http.StatusBadRequest)
@@ -55,6 +64,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Initialize Compute client
 	compute, err := compute.NewCompute(ctx, logger, traceId)
 	if err != nil {
 		http.Error(w, "unable to create cloud run job client", http.StatusBadRequest)
@@ -65,6 +75,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log application start event
 	client.LogAuditData(ctx, model.AuditEvent{
 		TraceID:      traceId,
 		ContractId:   traceId,
@@ -75,6 +86,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		Message:      "application started",
 	})
 
+	// Read and parse request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
@@ -96,6 +108,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Unmarshal request JSON into a structured format
 	var requestData model.RequestBody
 	if err := json.Unmarshal(body, &requestData); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -139,12 +152,14 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Instantiate processor and analyze the file
 	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, projectRegion, jobName)
 
 	result := processor.AnalyzeFileUrls(ctx, fileUrl)
 
 	w.Header().Set(constants.CONTENT_TYPE, constants.APPLICATION_JSON)
 
+	// Handle any errors from processing
 	for _, res := range result {
 		if res.Error != "" {
 			logger.Error("error fetching file size",
@@ -165,8 +180,10 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Respond with result
 	json.NewEncoder(w).Encode(result)
 
+	// Log application completion event
 	client.LogAuditData(ctx, model.AuditEvent{
 		TraceID:      traceId,
 		ContractId:   traceId,
