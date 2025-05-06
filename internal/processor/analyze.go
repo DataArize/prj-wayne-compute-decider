@@ -54,6 +54,15 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 		fileInfo := p.analyzeFile(ctx, fileUrl)
 		err := p.decideCompute(ctx, fileInfo)
 		if err != nil {
+			p.client.LogAuditData(ctx, model.AuditEvent{
+				TraceID:      p.traceId,
+				ContractId:   p.traceId,
+				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+				FileUrl:      fileUrl,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
+			})
 			fileInfo.Error = err.Error()
 		}
 		requests = append(requests, fileInfo)
@@ -79,6 +88,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
 			Status:       constants.IN_PROGRESS,
 			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
@@ -90,16 +100,6 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
 				zap.Error(err))
-
-			p.client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:      p.traceId,
-				ContractId:   p.traceId,
-				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
-				Status:       constants.FAILED,
-				Timestamp:    time.Now(),
-				FunctionName: constants.APPLICATION_NAME,
-			})
-
 			return err
 		}
 		return nil
@@ -112,64 +112,15 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		p.client.LogAuditData(ctx, model.AuditEvent{
 			TraceID:      p.traceId,
 			ContractId:   p.traceId,
-			Event:        constants.TRIGGER_CLOUD_BATCH_JOB,
+			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
 			Status:       constants.IN_PROGRESS,
 			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
-		arguments := model.Arguments{
-			TraceId:        p.traceId,
-			FIleUrl:        request.FIleUrl,
-			FileName:       request.FileName,
-			RangeSupported: request.RangeSupported,
-			FileExtension:  request.FileExtension,
-			FileSize:       request.FileSize,
-			ContentType:    request.ContentType,
-		}
-
-		argsJSON, error := json.Marshal(arguments)
-		if error != nil {
-			p.logger.Error("failed to marshal arguments to JSON",
-				zap.String("applicationName", constants.APPLICATION_NAME),
-				zap.String("traceId", p.traceId),
-				zap.Any("arguments", arguments),
-				zap.Error(error))
-			return fmt.Errorf("failed to marshal arguments: %w", error)
-		}
-
-		event := model.ContractFileEvent{
-			TraceID:      request.TraceId,
-			ContractID:   request.TraceId,
-			Status:       constants.STARTED,
-			Timestamp:    time.Now(),
-			FunctionName: constants.APPLICATION_NAME,
-			Arguments:    string(argsJSON),
-			Environment:  constants.ENVIRONMENT,
-		}
-
-		err := p.client.ContractFileQueue(ctx, event)
-		if err != nil {
-			p.logger.Error("error inserting data into `contract_file_queue` table",
-				zap.String("applicationName", constants.APPLICATION_NAME),
-				zap.String("traceId", p.traceId),
-				zap.String("fileSize", request.FileSize),
-				zap.Error(err))
-
-			p.client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:      p.traceId,
-				ContractId:   p.traceId,
-				Event:        constants.FAILED_TRIGGER_CLOUD_BATCH_JOB,
-				Status:       constants.FAILED,
-				Timestamp:    time.Now(),
-				FunctionName: constants.APPLICATION_NAME,
-			})
-			return err
-
-		}
-
 		args := []string{request.TraceId, request.FIleUrl, request.FileName}
-		err = p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
 		if err != nil {
 			p.logger.Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
@@ -177,18 +128,8 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 				zap.String("fileSize", request.FileSize),
 				zap.Error(err))
 
-			p.client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:      p.traceId,
-				ContractId:   p.traceId,
-				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
-				Status:       constants.FAILED,
-				Timestamp:    time.Now(),
-				FunctionName: constants.APPLICATION_NAME,
-			})
-
 			return err
 		}
-
 		return nil
 
 	default:
@@ -219,6 +160,15 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 		info.Error = fmt.Sprintf("Invalid URL %s: %v", fileUrl, err)
 		return info
 	}
+	p.client.LogAuditData(ctx, model.AuditEvent{
+		TraceID:      p.traceId,
+		ContractId:   p.traceId,
+		Event:        constants.ANALYZE_FILE_STARTED,
+		Status:       constants.IN_PROGRESS,
+		Timestamp:    time.Now(),
+		FileUrl:      fileUrl,
+		FunctionName: constants.APPLICATION_NAME,
+	})
 
 	info.FileExtension = path.Ext(parsedUrl.Path)
 
@@ -288,6 +238,16 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 			info.FileExtension = "." + parts[1]
 		}
 	}
+
+	p.client.LogAuditData(ctx, model.AuditEvent{
+		TraceID:      p.traceId,
+		ContractId:   p.traceId,
+		Event:        constants.ANALYZE_FILE_COMPLETED,
+		Status:       constants.IN_PROGRESS,
+		Timestamp:    time.Now(),
+		FileUrl:      fileUrl,
+		FunctionName: constants.APPLICATION_NAME,
+	})
 
 	p.logger.Info("Process completed",
 		zap.String("applicationName", constants.APPLICATION_NAME),

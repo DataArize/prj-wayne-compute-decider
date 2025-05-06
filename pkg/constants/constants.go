@@ -31,6 +31,8 @@ const (
 	INVALID_JSON_FORMAT            = "compute_decider.invalid_json_format"
 	FILE_URL_MISSING               = "compute_decider.file_url_missing"
 	ERROR_FETCHING_FILE_SIZE       = "compute_decider.error_fetching_file_size"
+	ANALYZE_FILE_STARTED           = "compute_decider.analyze_file_started"
+	ANALYZE_FILE_COMPLETED         = "compute_decider.analyze_file_completed"
 	TRIGGER_CLOUD_RUN_JOB          = "compute_decider.trigger_cloud_run_job"
 	TRIGGER_CLOUD_BATCH_JOB        = "compute_decider.trigger_cloud_batch_job"
 	FAILED_TRIGGER_CLOUD_RUN_JOB   = "compute_decider.trigger_cloud_run_job_failed"

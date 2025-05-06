@@ -168,6 +168,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			client.LogAuditData(ctx, model.AuditEvent{
 				TraceID:      traceId,
 				ContractId:   traceId,
+				FileUrl:      res.FIleUrl,
 				Event:        constants.ERROR_FETCHING_FILE_SIZE,
 				Status:       constants.FAILED,
 				Timestamp:    time.Now(),

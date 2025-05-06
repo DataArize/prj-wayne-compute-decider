@@ -30,10 +30,11 @@ type AuditEvent struct {
 	ContractId   string    `json:"contractId"`
 	Event        string    `bigquery:"event"`
 	Status       string    `bigquery:"status"`
-	Timestamp    time.Time `bigquery:"timestamp"`
+	Timestamp    time.Time `bigquery:"createdTimestamp"`
 	FunctionName string    `bigquery:"functionName"`
 	Environment  string    `bigquery:"environment"`
 	Message      string    `bigquery:"message"`
+	FileUrl      string    `bigquery:"fileUrl"`
 }
 
 type RequestBody struct {
@@ -50,4 +51,3 @@ type ContractFileEvent struct {
 	Arguments    string    `bigquery:"arguments"`    // nested struct
 	Environment  string    `bigquery:"environment"`  // can be null
 }
-
