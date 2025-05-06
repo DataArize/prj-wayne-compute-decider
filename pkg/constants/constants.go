@@ -52,4 +52,6 @@ const (
 	CLOUD_RUN_JOB_NAME      = "prj-wayne-file-streamer"
 	ZIP_DOWNLOADER_JOB_NAME = "prj-wayne-zip-downloader"
 	JOB_PREFIX              = "projects/%s/locations/%s/jobs/%s"
+
+	HEALTH = "/health"
 )

@@ -44,34 +44,43 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	projectRegion := constants.REGION
 	jobName := os.Getenv(constants.JOB_NAME)
 	if projectId == "" {
-		http.Error(w, "project id not specified", http.StatusBadRequest)
 		logger.Error("project Id not specified",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
+
+		http.Error(w, "project id not specified", http.StatusBadRequest)
 		return
 
+	}
+
+	if r.Method == http.MethodGet && r.URL.Path == constants.HEALTH {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+		return
 	}
 
 	// Initialize BigQuery client
 	client, err := bigquery.NewClient(ctx, logger, projectId, traceId)
 	if err != nil {
-		http.Error(w, "bigquery client creation failed", http.StatusBadRequest)
 		logger.Error("biquery client creation failed",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
+
+		http.Error(w, "bigquery client creation failed", http.StatusBadRequest)
 		return
 	}
 
 	// Initialize Compute client
 	compute, err := compute.NewCompute(ctx, logger, traceId)
 	if err != nil {
-		http.Error(w, "unable to create cloud run job client", http.StatusBadRequest)
 		logger.Error("unable to create cloud run job client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
+
+		http.Error(w, "unable to create cloud run job client", http.StatusBadRequest)
 		return
 	}
 
@@ -89,7 +98,6 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Read and parse request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		logger.Error("failed to read request body",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
@@ -104,6 +112,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Message:      err.Error(),
 		})
 
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -111,7 +120,6 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal request JSON into a structured format
 	var requestData model.RequestBody
 	if err := json.Unmarshal(body, &requestData); err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		logger.Error("invalid JSON format",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
