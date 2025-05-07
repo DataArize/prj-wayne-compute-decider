@@ -1,3 +1,5 @@
+// Package processor provides logic to analyze files and determine whether to trigger
+// compute jobs based on file metadata such as size and extension.
 package processor
 
 import (
@@ -17,6 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Processor coordinates the logic for analyzing files and deciding compute actions.
 type Processor struct {
 	traceId       string
 	logger        *zap.Logger
@@ -28,6 +31,7 @@ type Processor struct {
 	jobName       string
 }
 
+// NewProcessor creates and returns a new instance of Processor with all required dependencies.
 func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string) *Processor {
 	return &Processor{
 		traceId:       traceId,
@@ -41,22 +45,65 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 	}
 }
 
+// AnalyzeFileUrls iterates over the provided file URLs, analyzes each one,
+// and determines whether to trigger a compute job.
 func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
-		p.decideCompute(ctx, fileInfo)
+		err := p.decideCompute(ctx, fileInfo)
+		if err != nil {
+			p.client.LogAuditData(ctx, model.AuditEvent{
+				TraceID:      p.traceId,
+				ContractId:   p.traceId,
+				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+				FileUrl:      fileUrl,
+				Status:       constants.FAILED,
+				Timestamp:    time.Now(),
+				FunctionName: constants.APPLICATION_NAME,
+			})
+			fileInfo.Error = err.Error()
+		}
 		requests = append(requests, fileInfo)
 	}
 
 	return requests
 }
 
+// decideCompute determines the compute action to take based on file extension (e.g. .gz or .zip).
+// It logs appropriate audit events and triggers cloud run jobs or queues messages.
 func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) error {
 	ext := request.FileExtension
-	estimatedFileSize := 4 * request.FileSizeFloat
-	switch {
-	case ext == constants.GZ:
+	switch ext {
+	case constants.JSON:
+		p.logger.Info("File extension is JSON",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.String("fileSize", request.FileSize))
+
+		p.client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      p.traceId,
+			ContractId:   p.traceId,
+			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
+			Status:       constants.IN_PROGRESS,
+			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
+			FunctionName: constants.APPLICATION_NAME,
+		})
+
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
+		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+			return err
+		}
+		return nil
+
+	case constants.GZ:
 		p.logger.Info("File extension is GZ",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
@@ -66,30 +113,58 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			TraceID:      p.traceId,
 			ContractId:   p.traceId,
 			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
-			Status:       constants.STARTED,
+			Status:       constants.IN_PROGRESS,
 			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
-		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, p.jobName, args)
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.GZ_JOB_NAME, args)
 		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
 			return err
 		}
 		return nil
-	case estimatedFileSize > constants.MAX_FILE_SIZE:
-		p.logger.Info("file size is greater than max file size for cloud run",
+	case constants.ZIP:
+		p.logger.Info("File extension is ZIP",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
-			zap.String("fileName", request.FileSize),
-			zap.Int("maxFileSize", constants.MAX_FILE_SIZE))
+			zap.String("fileSize", request.FileSize))
+
+		p.client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      p.traceId,
+			ContractId:   p.traceId,
+			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
+			Status:       constants.IN_PROGRESS,
+			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
+			FunctionName: constants.APPLICATION_NAME,
+		})
+
+		args := []string{request.TraceId, request.FIleUrl, request.FileName}
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
+		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+
+			return err
+		}
+		return nil
 
 	default:
 		return nil
 	}
-	return nil
 }
 
+// getFileNameFromURL extracts the file name from a URL path.
 func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
 	parsedUrl, err := url.Parse(rawURL)
 	if err != nil {
@@ -98,6 +173,8 @@ func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
 	return path.Base(parsedUrl.Path), nil
 }
 
+// analyzeFile performs a HEAD request to gather metadata about the file,
+// such as content length, content type, extension, and range support.
 func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
 	var info model.FileInfo
 
@@ -110,6 +187,15 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 		info.Error = fmt.Sprintf("Invalid URL %s: %v", fileUrl, err)
 		return info
 	}
+	p.client.LogAuditData(ctx, model.AuditEvent{
+		TraceID:      p.traceId,
+		ContractId:   p.traceId,
+		Event:        constants.ANALYZE_FILE_STARTED,
+		Status:       constants.IN_PROGRESS,
+		Timestamp:    time.Now(),
+		FileUrl:      fileUrl,
+		FunctionName: constants.APPLICATION_NAME,
+	})
 
 	info.FileExtension = path.Ext(parsedUrl.Path)
 
@@ -179,6 +265,16 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileI
 			info.FileExtension = "." + parts[1]
 		}
 	}
+
+	p.client.LogAuditData(ctx, model.AuditEvent{
+		TraceID:      p.traceId,
+		ContractId:   p.traceId,
+		Event:        constants.ANALYZE_FILE_COMPLETED,
+		Status:       constants.IN_PROGRESS,
+		Timestamp:    time.Now(),
+		FileUrl:      fileUrl,
+		FunctionName: constants.APPLICATION_NAME,
+	})
 
 	p.logger.Info("Process completed",
 		zap.String("applicationName", constants.APPLICATION_NAME),

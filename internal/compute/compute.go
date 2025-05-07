@@ -1,3 +1,6 @@
+// Package compute provides a wrapper around Google Cloud Run jobs.
+// It is responsible for triggering cloud run jobs with appropriate arguments
+// and managing the lifecycle of the Run client.
 package compute
 
 import (
@@ -12,12 +15,15 @@ import (
 	"cloud.google.com/go/run/apiv2/runpb"
 )
 
+// Compute wraps the Cloud Run JobsClient with logging and traceability context.
 type Compute struct {
-	logger  *zap.Logger
-	client  *run.JobsClient
-	traceId string
+	logger  *zap.Logger     // Logger for structured logging
+	client  *run.JobsClient // Google Cloud Run jobs client
+	traceId string          // Trace ID for request tracking
 }
 
+// NewCompute initializes and returns a new Compute instance.
+// It creates a Cloud Run JobsClient and sets up logging with trace information.
 func NewCompute(ctx context.Context, logger *zap.Logger, traceId string) (*Compute, error) {
 	client, err := run.NewJobsClient(ctx)
 	if err != nil {
@@ -34,8 +40,11 @@ func NewCompute(ctx context.Context, logger *zap.Logger, traceId string) (*Compu
 	}, err
 }
 
+// TriggerFileStreamerJob starts a Cloud Run job using the provided project,
+// region, job name, and arguments. It logs both the initiation and result
+// of the operation for observability and debugging.
 func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, region string, jobName string, args []string) error {
-	name := fmt.Sprintf(constants.JOB_PREFIX, projectId, region, constants.CLOUD_RUN_JOB_NAME)
+	name := fmt.Sprintf(constants.JOB_PREFIX, projectId, region, jobName)
 	c.logger.Info("attempting to trigger cloud run job",
 		zap.String("applicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
@@ -73,6 +82,7 @@ func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, 
 	return nil
 }
 
+// Close gracefully closes the Cloud Run JobsClient to free resources.
 func (c *Compute) Close(ctx context.Context) error {
 	_, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
