@@ -75,6 +75,34 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []mo
 func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) error {
 	ext := request.FileExtension
 	switch ext {
+	case constants.JSON:
+		p.logger.Info("File extension is JSON",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", p.traceId),
+			zap.String("fileSize", request.FileSize))
+
+		p.client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      p.traceId,
+			ContractId:   p.traceId,
+			Event:        constants.TRIGGER_CLOUD_RUN_JOB,
+			Status:       constants.IN_PROGRESS,
+			Timestamp:    time.Now(),
+			FileUrl:      request.FIleUrl,
+			FunctionName: constants.APPLICATION_NAME,
+		})
+
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
+		if err != nil {
+			p.logger.Error("error triggering cloud run job",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.String("fileSize", request.FileSize),
+				zap.Error(err))
+			return err
+		}
+		return nil
+
 	case constants.GZ:
 		p.logger.Info("File extension is GZ",
 			zap.String("applicationName", constants.APPLICATION_NAME),
@@ -92,7 +120,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		})
 
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
-		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
+		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.GZ_JOB_NAME, args)
 		if err != nil {
 			p.logger.Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),

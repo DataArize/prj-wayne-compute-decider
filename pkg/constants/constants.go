@@ -43,13 +43,15 @@ const (
 	MAX_FILE_SIZE = 25
 
 	// FILE EXTENSIONS
-	GZ  = ".gz"
-	ZIP = ".zip"
+	GZ   = ".gz"
+	ZIP  = ".zip"
+	JSON = ".json"
 
 	ENVIRONMENT = "DEV"
 
 	// JOB NAME
 	CLOUD_RUN_JOB_NAME      = "prj-wayne-file-streamer"
+	GZ_JOB_NAME             = "prj-wayne-gz-streamer"
 	ZIP_DOWNLOADER_JOB_NAME = "prj-wayne-zip-downloader"
 	JOB_PREFIX              = "projects/%s/locations/%s/jobs/%s"
 
