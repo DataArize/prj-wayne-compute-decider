@@ -41,11 +41,14 @@ func NewGCSClient(logger *zap.Logger, bucketName string, traceId string, ctx con
 }
 
 func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.Context, requestUUID string) (bool, error) {
-	c.logger.Info("starting download and upload to GCS",
-		zap.String("ApplicationName", constants.APPLICATION_NAME),
-		zap.String("traceId", c.traceId))
-
 	objectPath := filepath.Join(requestUUID, fileInfo.FileName)
+	c.logger.Info("checking if file already exists",
+		zap.String("ApplicationName", constants.APPLICATION_NAME),
+		zap.String("traceId", c.traceId),
+		zap.String("bucketName", c.bucketName),
+		zap.String("objectPath", objectPath),
+		zap.String("fileUrl", fileInfo.FIleUrl),
+		zap.String("fileName", fileInfo.FileName))
 
 	bucket := c.gcsClient.Bucket(c.bucketName)
 
@@ -54,6 +57,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		c.logger.Info("file already downloaded",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
+			zap.String("objectPath", objectPath),
 			zap.String("bucketName", c.bucketName),
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName))
@@ -64,6 +68,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		c.logger.Info("error checking if file already exists",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
+			zap.String("objectPath", objectPath),
 			zap.String("bucketName", c.bucketName),
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName),
@@ -75,6 +80,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 	c.logger.Info("file does not exists need to download and process file",
 		zap.String("ApplicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
+		zap.String("objectPath", objectPath),
 		zap.String("bucketName", c.bucketName),
 		zap.String("fileUrl", fileInfo.FIleUrl),
 		zap.String("fileName", fileInfo.FileName))
