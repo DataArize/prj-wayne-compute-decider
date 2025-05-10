@@ -53,7 +53,7 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
-		fileInfo := p.analyzeFile(ctx, fileUrl)
+		fileInfo := p.analyzeFile(ctx, fileUrl, requestUUID)
 		isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
 		if err != nil {
 			p.client.LogAuditData(ctx, model.AuditEvent{
