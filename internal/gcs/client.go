@@ -53,7 +53,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 	bucket := c.gcsClient.Bucket(c.bucketName)
 
 	_, err := bucket.Object(objectPath).Attrs(ctx)
-	if err != storage.ErrObjectNotExist {
+	if err == storage.ErrObjectNotExist {
 		c.logger.Info("file does not exists start download",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
