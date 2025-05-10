@@ -17,7 +17,8 @@ const (
 	BYTES                = "bytes"
 
 	// ENV CONSTANTS
-	PROJECT_ID = "GCP_PROJECT_ID"
+	PROJECT_ID  = "GCP_PROJECT_ID"
+	BUCKET_NAME = "BUCKET_NAME"
 
 	// STATUS CONSTANTS
 	STARTED     = "STARTED"
@@ -37,6 +38,7 @@ const (
 	TRIGGER_CLOUD_BATCH_JOB        = "compute_decider.trigger_cloud_batch_job"
 	FAILED_TRIGGER_CLOUD_RUN_JOB   = "compute_decider.trigger_cloud_run_job_failed"
 	FAILED_TRIGGER_CLOUD_BATCH_JOB = "compute_decider.trigger_cloud_batch_job_failed"
+	FAILED_TO_CHECK_IF_FILE_EXISTS = "compute_decider.failed_to_check_file_exists"
 	APPLICATION_COMPLETED_EVENT    = "compute_decider.application_completed"
 
 	// MAX FILE SIZE

@@ -14,6 +14,7 @@ import (
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/compute"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/gcs"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
 	"go.uber.org/zap"
@@ -25,6 +26,7 @@ type Processor struct {
 	logger        *zap.Logger
 	fileUrl       []string
 	client        *bigquery.Client
+	gcs           *gcs.GCSClient
 	compute       *compute.Compute
 	projectId     string
 	projectRegion string
@@ -32,7 +34,7 @@ type Processor struct {
 }
 
 // NewProcessor creates and returns a new instance of Processor with all required dependencies.
-func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string) *Processor {
+func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *bigquery.Client, compute *compute.Compute, projectId string, region string, jobName string, gcs *gcs.GCSClient) *Processor {
 	return &Processor{
 		traceId:       traceId,
 		logger:        logger,
@@ -42,27 +44,43 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 		projectId:     projectId,
 		projectRegion: region,
 		jobName:       jobName,
+		gcs:           gcs,
 	}
 }
 
 // AnalyzeFileUrls iterates over the provided file URLs, analyzes each one,
 // and determines whether to trigger a compute job.
-func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string) []model.FileInfo {
+func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl)
-		err := p.decideCompute(ctx, fileInfo)
+		isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
 		if err != nil {
 			p.client.LogAuditData(ctx, model.AuditEvent{
 				TraceID:      p.traceId,
 				ContractId:   p.traceId,
-				Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+				Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS
 				FileUrl:      fileUrl,
 				Status:       constants.FAILED,
 				Timestamp:    time.Now(),
 				FunctionName: constants.APPLICATION_NAME,
 			})
 			fileInfo.Error = err.Error()
+		} else if !isProcessed {
+			err := p.decideCompute(ctx, fileInfo)
+			if err != nil {
+				p.client.LogAuditData(ctx, model.AuditEvent{
+					TraceID:      p.traceId,
+					ContractId:   p.traceId,
+					Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+					FileUrl:      fileUrl,
+					Status:       constants.FAILED,
+					Timestamp:    time.Now(),
+					FunctionName: constants.APPLICATION_NAME,
+				})
+				fileInfo.Error = err.Error()
+			}
+
 		}
 		requests = append(requests, fileInfo)
 	}
@@ -91,7 +109,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
-		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
 		if err != nil {
 			p.logger.Error("error triggering cloud run job",
@@ -175,8 +193,9 @@ func (p *Processor) getFileNameFromURL(rawURL string) (string, error) {
 
 // analyzeFile performs a HEAD request to gather metadata about the file,
 // such as content length, content type, extension, and range support.
-func (p *Processor) analyzeFile(ctx context.Context, fileUrl string) model.FileInfo {
+func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID string) model.FileInfo {
 	var info model.FileInfo
+	info.RequestUUID = requestUUID
 
 	parsedUrl, err := url.Parse(fileUrl)
 	if err != nil {
