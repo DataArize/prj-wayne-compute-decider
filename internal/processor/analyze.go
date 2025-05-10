@@ -59,7 +59,7 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requ
 			p.client.LogAuditData(ctx, model.AuditEvent{
 				TraceID:      p.traceId,
 				ContractId:   p.traceId,
-				Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS
+				Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS,
 				FileUrl:      fileUrl,
 				Status:       constants.FAILED,
 				Timestamp:    time.Now(),
@@ -137,7 +137,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 			FunctionName: constants.APPLICATION_NAME,
 		})
 
-		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes}
+		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.GZ_JOB_NAME, args)
 		if err != nil {
 			p.logger.Error("error triggering cloud run job",

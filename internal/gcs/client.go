@@ -3,6 +3,7 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
@@ -39,12 +40,12 @@ func NewGCSClient(logger *zap.Logger, bucketName string, traceId string, ctx con
 	return c, nil
 }
 
-func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.Context) (bool, error) {
+func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.Context, requestUUID string) (bool, error) {
 	c.logger.Info("starting download and upload to GCS",
 		zap.String("ApplicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId))
 
-	objectPath := fmt.Sprintf("%s/%s", fileInfo.TraceId, fileInfo.FileName)
+	objectPath := filepath.Join(requestUUID, fileInfo.FileName)
 
 	bucket := c.gcsClient.Bucket(c.bucketName)
 
