@@ -54,7 +54,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 
 	_, err := bucket.Object(objectPath).Attrs(ctx)
 	if err != storage.ErrObjectNotExist {
-		c.logger.Info("file already downloaded",
+		c.logger.Info("file does not exists start download",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.String("objectPath", objectPath),
@@ -62,7 +62,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName))
 
-		return true, nil
+		return false, nil
 	}
 	if err != nil {
 		c.logger.Info("error checking if file already exists",
@@ -77,7 +77,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		return false, fmt.Errorf("error checking object existence :%v", err)
 	}
 
-	c.logger.Info("file does not exists need to download and process file",
+	c.logger.Info("file already exists",
 		zap.String("ApplicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
 		zap.String("objectPath", objectPath),
@@ -85,7 +85,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		zap.String("fileUrl", fileInfo.FIleUrl),
 		zap.String("fileName", fileInfo.FileName))
 
-	return false, nil
+	return true, nil
 }
 
 func (c *GCSClient) Close(ctx context.Context) error {
