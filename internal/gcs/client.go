@@ -50,7 +50,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		zap.String("fileUrl", fileInfo.FIleUrl),
 		zap.String("fileName", fileInfo.FileName))
 
-	bucket := c.gcsClient.Bucket(constants.BUCKET_NAME)
+	bucket := c.gcsClient.Bucket(constants.HARDCODED_BUCKET_NAME)
 
 	_, err := bucket.Object(objectPath).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
