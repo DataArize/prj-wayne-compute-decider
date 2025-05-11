@@ -61,7 +61,6 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 			zap.String("bucketName", constants.HARDCODED_BUCKET_NAME),
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName))
-
 		return false, nil
 	}
 	if err != nil {
