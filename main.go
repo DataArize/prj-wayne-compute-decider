@@ -177,7 +177,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 			Status:       constants.FAILED,
 			Timestamp:    time.Now(),
 			FunctionName: constants.APPLICATION_NAME,
-			Message:      err.Error()
+			Message:      err.Error(),
 		})
 
 		http.Error(w, "error fetching file size", http.StatusInternalServerError)
