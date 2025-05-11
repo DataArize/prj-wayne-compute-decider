@@ -165,6 +165,24 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	gcsClient, err := gcs.NewGCSClient(logger, bucketName, traceId, ctx)
 	if err != nil {
+		logger.Error("error creating GCS client",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
+
+		client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      traceId,
+			ContractId:   traceId,
+			Event:        constants.ERROR_CREATING_GCS_CLIENT,
+			Status:       constants.FAILED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
+			Message:      err.Error()
+		})
+
+		http.Error(w, "error fetching file size", http.StatusInternalServerError)
+		return
+
 	}
 
 	// Instantiate processor and analyze the file
@@ -178,6 +196,8 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	for _, res := range result {
 		if res.Error != "" {
 			logger.Error("error fetching file size",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", traceId),
 				zap.String("error", res.Error))
 
 			client.LogAuditData(ctx, model.AuditEvent{

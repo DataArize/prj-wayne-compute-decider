@@ -45,12 +45,12 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 	c.logger.Info("checking if file already exists",
 		zap.String("ApplicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
-		zap.String("bucketName", c.bucketName),
+		zap.String("bucketName", constants.HARDCODED_BUCKET_NAME),
 		zap.String("objectPath", objectPath),
 		zap.String("fileUrl", fileInfo.FIleUrl),
 		zap.String("fileName", fileInfo.FileName))
 
-	bucket := c.gcsClient.Bucket(c.bucketName)
+	bucket := c.gcsClient.Bucket(constants.BUCKET_NAME)
 
 	_, err := bucket.Object(objectPath).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
@@ -58,7 +58,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.String("objectPath", objectPath),
-			zap.String("bucketName", c.bucketName),
+			zap.String("bucketName", constants.HARDCODED_BUCKET_NAME),
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName))
 
@@ -69,7 +69,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.String("objectPath", objectPath),
-			zap.String("bucketName", c.bucketName),
+			zap.String("bucketName", constants.HARDCODED_BUCKET_NAME),
 			zap.String("fileUrl", fileInfo.FIleUrl),
 			zap.String("fileName", fileInfo.FileName),
 			zap.Error(err))
@@ -81,7 +81,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 		zap.String("ApplicationName", constants.APPLICATION_NAME),
 		zap.String("traceId", c.traceId),
 		zap.String("objectPath", objectPath),
-		zap.String("bucketName", c.bucketName),
+		zap.String("bucketName", constants.HARDCODED_BUCKET_NAME),
 		zap.String("fileUrl", fileInfo.FIleUrl),
 		zap.String("fileName", fileInfo.FileName))
 
