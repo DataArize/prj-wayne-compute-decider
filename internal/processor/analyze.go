@@ -50,23 +50,40 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 
 // AnalyzeFileUrls iterates over the provided file URLs, analyzes each one,
 // and determines whether to trigger a compute job.
-func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string) []model.FileInfo {
+func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string, forceProcessFlag bool) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl, requestUUID)
-		isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
-		if err != nil {
-			p.client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:      p.traceId,
-				ContractId:   p.traceId,
-				Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS,
-				FileUrl:      fileUrl,
-				Status:       constants.FAILED,
-				Timestamp:    time.Now(),
-				FunctionName: constants.APPLICATION_NAME,
-			})
-			fileInfo.Error = err.Error()
-		} else if !isProcessed {
+		if !forceProcessFlag {
+			isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
+			if err != nil {
+				p.client.LogAuditData(ctx, model.AuditEvent{
+					TraceID:      p.traceId,
+					ContractId:   p.traceId,
+					Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS,
+					FileUrl:      fileUrl,
+					Status:       constants.FAILED,
+					Timestamp:    time.Now(),
+					FunctionName: constants.APPLICATION_NAME,
+				})
+				fileInfo.Error = err.Error()
+			} else if !isProcessed {
+				err := p.decideCompute(ctx, fileInfo)
+				if err != nil {
+					p.client.LogAuditData(ctx, model.AuditEvent{
+						TraceID:      p.traceId,
+						ContractId:   p.traceId,
+						Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+						FileUrl:      fileUrl,
+						Status:       constants.FAILED,
+						Timestamp:    time.Now(),
+						FunctionName: constants.APPLICATION_NAME,
+					})
+					fileInfo.Error = err.Error()
+				}
+
+			}
+		} else {
 			err := p.decideCompute(ctx, fileInfo)
 			if err != nil {
 				p.client.LogAuditData(ctx, model.AuditEvent{

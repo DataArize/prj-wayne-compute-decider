@@ -142,6 +142,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileUrl := requestData.FileUrl
 	requestUUID := requestData.RequestUUID
+	forceProcessFlag := requestData.ForceProcessFlag
 
 	if len(fileUrl) == 0 {
 		logger.Error("Bad Request",
@@ -188,7 +189,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Instantiate processor and analyze the file
 	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, projectRegion, jobName, gcsClient)
 
-	result := processor.AnalyzeFileUrls(ctx, fileUrl, requestUUID)
+	result := processor.AnalyzeFileUrls(ctx, fileUrl, requestUUID, forceProcessFlag)
 
 	w.Header().Set(constants.CONTENT_TYPE, constants.APPLICATION_JSON)
 

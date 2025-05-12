@@ -39,8 +39,9 @@ type AuditEvent struct {
 }
 
 type RequestBody struct {
-	FileUrl     []string `json:"fileUrl"`
-	RequestUUID string   `json:"requestUUID"`
+	FileUrl          []string `json:"fileUrl"`
+	RequestUUID      string   `json:"requestUUID"`
+	ForceProcessFlag bool     `json:"forceProcessFlag"`
 }
 
 type ContractFileEvent struct {
