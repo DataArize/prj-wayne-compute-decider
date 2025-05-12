@@ -104,4 +104,5 @@ jobs:
           JOB_NAME=${{ github.ref == 'refs/heads/main' && secrets.PRODUCTION_GCP_JOB_NAME || secrets.DEVELOPMENT_GCP_JOB_NAME }}, \
           BUCKET_NAME=${{ github.ref == 'refs/heads/main' && secrets.PRODUCTION_GCP_BUCKET_NAME || secrets.DEVELOPMENT_GCP_BUCKET_NAME }}"
 
+
           gcloud functions deploy prj-wayne-compute-decider --runtime=go123 --entry-point=AnalyzeFileHandler --region="$PROJECT_REGION" --gen2 --trigger-http --allow-unauthenticated --service-account="$SERVICE_ACCOUNT" --set-env-vars="$ENV_VARS"
