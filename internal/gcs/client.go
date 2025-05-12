@@ -2,6 +2,7 @@ package gcs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -53,7 +54,7 @@ func (c *GCSClient) CheckAlreadyProcessed(fileInfo model.FileInfo, ctx context.C
 	bucket := c.gcsClient.Bucket(constants.HARDCODED_BUCKET_NAME)
 
 	_, err := bucket.Object(objectPath).Attrs(ctx)
-	if err == storage.ErrObjectNotExist {
+	if errors.Is(err, storage.ErrObjectNotExist) {
 		c.logger.Info("file does not exists start download",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
