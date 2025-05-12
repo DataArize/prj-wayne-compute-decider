@@ -35,7 +35,13 @@ The Wayne Compute Pipeline is a **serverless, event-driven system** for processi
 
 ## High-Level Architecture
 
+![Architecture Diagram](https://github.com/user-attachments/assets/1edf4b75-e3e7-4640-8a22-74b95912b9e4)
+
 ---
+
+## Flow diargam
+
+## ![Flow Diagram](https://github.com/user-attachments/assets/a188d253-8142-49f8-b142-baba9285862f)
 
 ## Component Responsibilities
 
@@ -143,7 +149,7 @@ The Wayne Compute Pipeline is a **serverless, event-driven system** for processi
 | FunctionName | STRING    | The service name                               |
 | Message      | STRING    | Additional context                             |
 
-**Environment Variables**
+## Environment Variables
 
 | Name          | Required | Used In         | Description              |
 | ------------- | -------- | --------------- | ------------------------ |
