@@ -37,6 +37,10 @@ The Wayne Compute Pipeline is a **serverless, event-driven system** for processi
 
 ---
 
+## Flow diargam
+
+## ![Flow Diagram](https://app.eraser.io/workspace/YoaYI1MVzRobVFDjAPxn?origin=share)
+
 ## Component Responsibilities
 
 ### 1. Compute-Decider
