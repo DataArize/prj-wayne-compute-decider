@@ -55,6 +55,10 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requ
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl, requestUUID)
 		if !forceProcessFlag {
+			p.logger.Info("force process flag is false",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.Bool("forceProcessFlag", forceProcessFlag))
 			isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
 			if err != nil {
 				p.client.LogAuditData(ctx, model.AuditEvent{
@@ -84,6 +88,11 @@ func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requ
 
 			}
 		} else {
+			p.logger.Info("force process flag is True",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.Bool("forceProcessFlag", forceProcessFlag))
+
 			err := p.decideCompute(ctx, fileInfo)
 			if err != nil {
 				p.client.LogAuditData(ctx, model.AuditEvent{
