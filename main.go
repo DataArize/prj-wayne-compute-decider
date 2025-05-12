@@ -13,6 +13,7 @@ import (
 
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/bigquery"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/compute"
+	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/gcs"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/model"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/internal/processor"
 	"github.com/AmithSAI007/prj-wayne-compute-decider.git/pkg/constants"
@@ -41,6 +42,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Load configuration from environment variables and constants
 	projectId := os.Getenv(constants.PROJECT_ID)
+	bucketName := os.Getenv(constants.BUCKET_NAME)
 	projectRegion := constants.REGION
 	jobName := os.Getenv(constants.JOB_NAME)
 	if projectId == "" {
@@ -139,6 +141,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fileUrl := requestData.FileUrl
+	requestUUID := requestData.RequestUUID
 
 	if len(fileUrl) == 0 {
 		logger.Error("Bad Request",
@@ -160,10 +163,32 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Instantiate processor and analyze the file
-	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, projectRegion, jobName)
+	gcsClient, err := gcs.NewGCSClient(logger, bucketName, traceId, ctx)
+	if err != nil {
+		logger.Error("error creating GCS client",
+			zap.String("applicationName", constants.APPLICATION_NAME),
+			zap.String("traceId", traceId),
+			zap.Error(err))
 
-	result := processor.AnalyzeFileUrls(ctx, fileUrl)
+		client.LogAuditData(ctx, model.AuditEvent{
+			TraceID:      traceId,
+			ContractId:   traceId,
+			Event:        constants.ERROR_CREATING_GCS_CLIENT,
+			Status:       constants.FAILED,
+			Timestamp:    time.Now(),
+			FunctionName: constants.APPLICATION_NAME,
+			Message:      err.Error(),
+		})
+
+		http.Error(w, "error fetching file size", http.StatusInternalServerError)
+		return
+
+	}
+
+	// Instantiate processor and analyze the file
+	processor := processor.NewProcessor(traceId, fileUrl, logger, client, compute, projectId, projectRegion, jobName, gcsClient)
+
+	result := processor.AnalyzeFileUrls(ctx, fileUrl, requestUUID)
 
 	w.Header().Set(constants.CONTENT_TYPE, constants.APPLICATION_JSON)
 
@@ -171,6 +196,8 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	for _, res := range result {
 		if res.Error != "" {
 			logger.Error("error fetching file size",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", traceId),
 				zap.String("error", res.Error))
 
 			client.LogAuditData(ctx, model.AuditEvent{

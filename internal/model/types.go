@@ -4,6 +4,7 @@ import "time"
 
 type FileInfo struct {
 	TraceId        string  `json:"traceid"`
+	RequestUUID    string  `json:"requestUUID"`
 	FIleUrl        string  `json:"fileUrl"`
 	FileName       string  `json:"fileName"`
 	RangeSupported bool    `json:"rangeSupported"`
