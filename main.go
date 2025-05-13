@@ -196,7 +196,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Handle any errors from processing
 	for _, res := range result {
 		if res.Error != "" {
-			logger.Error("error fetching file size",
+			logger.With(zap.String("severity", "ERROR")).Error("error fetching file size",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", traceId),
 				zap.String("error", res.Error))
