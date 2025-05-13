@@ -89,10 +89,18 @@ go run main.go
 ## Sample Output
 
 ```bash
-File Info:
-Extension: .pdf
-Size: 34567
-Content Type: application/pdf
+[
+    {
+        "traceid": "3214ae6e-8e03-4138-a17f-70fc393e03a9",
+        "requestUUID": "a7b0c7ad-f5e8-4e29-bf35-866e4acefb93",
+        "fileUrl": "https://app0004702110a5prdnc868.blob.core.windows.net/toc/2025-04-21_Blue-Cross-and-Blue-Shield-of-Illinois_index.json",
+        "fileName": "2025-04-21_Blue-Cross-and-Blue-Shield-of-Illinois_index.json",
+        "rangeSupported": true,
+        "fileExtenstion": ".json",
+        "fileSize": "0.04 GB",
+        "contentType": "application/octet-stream"
+    }
+]
 ```
 
 ---
