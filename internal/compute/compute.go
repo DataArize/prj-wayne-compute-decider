@@ -27,7 +27,7 @@ type Compute struct {
 func NewCompute(ctx context.Context, logger *zap.Logger, traceId string) (*Compute, error) {
 	client, err := run.NewJobsClient(ctx)
 	if err != nil {
-		logger.Error("unable to create cloud run job client",
+		logger.With(zap.String("severity", "ERROR")).Error("unable to create cloud run job client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -66,7 +66,7 @@ func (c *Compute) TriggerFileStreamerJob(ctx context.Context, projectId string, 
 
 	op, err := c.client.RunJob(ctx, req)
 	if err != nil {
-		c.logger.Error("failed to trigger cloud run job",
+		c.logger.With(zap.String("severity", "ERROR")).Error("failed to trigger cloud run job",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))
@@ -89,7 +89,7 @@ func (c *Compute) Close(ctx context.Context) error {
 
 	err := c.client.Close()
 	if err != nil {
-		c.logger.Error("unable to close cloud run job client",
+		c.logger.With(zap.String("severity", "ERROR")).Error("unable to close cloud run job client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))

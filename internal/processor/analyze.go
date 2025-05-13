@@ -50,23 +50,49 @@ func NewProcessor(traceId string, fileUrl []string, logger *zap.Logger, client *
 
 // AnalyzeFileUrls iterates over the provided file URLs, analyzes each one,
 // and determines whether to trigger a compute job.
-func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string) []model.FileInfo {
+func (p *Processor) AnalyzeFileUrls(ctx context.Context, fileUrls []string, requestUUID string, forceProcessFlag bool) []model.FileInfo {
 	var requests []model.FileInfo
 	for _, fileUrl := range fileUrls {
 		fileInfo := p.analyzeFile(ctx, fileUrl, requestUUID)
-		isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
-		if err != nil {
-			p.client.LogAuditData(ctx, model.AuditEvent{
-				TraceID:      p.traceId,
-				ContractId:   p.traceId,
-				Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS,
-				FileUrl:      fileUrl,
-				Status:       constants.FAILED,
-				Timestamp:    time.Now(),
-				FunctionName: constants.APPLICATION_NAME,
-			})
-			fileInfo.Error = err.Error()
-		} else if !isProcessed {
+		if !forceProcessFlag {
+			p.logger.Info("force process flag is false",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.Bool("forceProcessFlag", forceProcessFlag))
+			isProcessed, err := p.gcs.CheckAlreadyProcessed(fileInfo, ctx, requestUUID)
+			if err != nil {
+				p.client.LogAuditData(ctx, model.AuditEvent{
+					TraceID:      p.traceId,
+					ContractId:   p.traceId,
+					Event:        constants.FAILED_TO_CHECK_IF_FILE_EXISTS,
+					FileUrl:      fileUrl,
+					Status:       constants.FAILED,
+					Timestamp:    time.Now(),
+					FunctionName: constants.APPLICATION_NAME,
+				})
+				fileInfo.Error = err.Error()
+			} else if !isProcessed {
+				err := p.decideCompute(ctx, fileInfo)
+				if err != nil {
+					p.client.LogAuditData(ctx, model.AuditEvent{
+						TraceID:      p.traceId,
+						ContractId:   p.traceId,
+						Event:        constants.FAILED_TRIGGER_CLOUD_RUN_JOB,
+						FileUrl:      fileUrl,
+						Status:       constants.FAILED,
+						Timestamp:    time.Now(),
+						FunctionName: constants.APPLICATION_NAME,
+					})
+					fileInfo.Error = err.Error()
+				}
+
+			}
+		} else {
+			p.logger.Info("force process flag is True",
+				zap.String("applicationName", constants.APPLICATION_NAME),
+				zap.String("traceId", p.traceId),
+				zap.Bool("forceProcessFlag", forceProcessFlag))
+
 			err := p.decideCompute(ctx, fileInfo)
 			if err != nil {
 				p.client.LogAuditData(ctx, model.AuditEvent{
@@ -112,7 +138,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -140,7 +166,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.GZ_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -167,7 +193,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileName}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -199,7 +225,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 
 	parsedUrl, err := url.Parse(fileUrl)
 	if err != nil {
-		p.logger.Error("Invalid URL",
+		p.logger.With(zap.String("severity", "ERROR")).Error("Invalid URL",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -221,7 +247,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	req, err := http.NewRequestWithContext(ctx, constants.HEAD, fileUrl, nil)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to create HEAD request URL: %s, error : %v", fileUrl, err)
-		p.logger.Error("unable to create HEAD Request",
+		p.logger.With(zap.String("severity", "ERROR")).Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -231,7 +257,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to execute HEAD request URL: %s, error : %v", fileUrl, err)
-		p.logger.Error("unable to create HEAD Request",
+		p.logger.With(zap.String("severity", "ERROR")).Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -251,7 +277,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	fileName, err := p.getFileNameFromURL(fileUrl)
 	if err != nil {
 		info.Error = fmt.Sprintf("error extracting file name, fileURL: %s, error: %v", fileUrl, err)
-		p.logger.Error("error extracting file name",
+		p.logger.With(zap.String("severity", "ERROR")).Error("error extracting file name",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
