@@ -46,7 +46,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	projectRegion := constants.REGION
 	jobName := os.Getenv(constants.JOB_NAME)
 	if projectId == "" {
-		logger.Error("project Id not specified",
+		logger.With(zap.String("severity", "ERROR")).Error("project Id not specified",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -65,7 +65,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Initialize BigQuery client
 	client, err := bigquery.NewClient(ctx, logger, projectId, traceId)
 	if err != nil {
-		logger.Error("biquery client creation failed",
+		logger.With(zap.String("severity", "ERROR")).Error("biquery client creation failed",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -77,7 +77,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Initialize Compute client
 	compute, err := compute.NewCompute(ctx, logger, traceId)
 	if err != nil {
-		logger.Error("unable to create cloud run job client",
+		logger.With(zap.String("severity", "ERROR")).Error("unable to create cloud run job client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -100,7 +100,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Read and parse request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Error("failed to read request body",
+		logger.With(zap.String("severity", "ERROR")).Error("failed to read request body",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -122,7 +122,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal request JSON into a structured format
 	var requestData model.RequestBody
 	if err := json.Unmarshal(body, &requestData); err != nil {
-		logger.Error("invalid JSON format",
+		logger.With(zap.String("severity", "ERROR")).Error("invalid JSON format",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -145,7 +145,7 @@ func AnalyzeFileHandler(w http.ResponseWriter, r *http.Request) {
 	forceProcessFlag := requestData.ForceProcessFlag
 
 	if len(fileUrl) == 0 {
-		logger.Error("Bad Request",
+		logger.With(zap.String("severity", "ERROR")).Error("Bad Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.String("message", "Missing fileUrl Parameter"))

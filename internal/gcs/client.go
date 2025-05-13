@@ -24,7 +24,7 @@ type GCSClient struct {
 func NewGCSClient(logger *zap.Logger, bucketName string, traceId string, ctx context.Context) (*GCSClient, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		logger.Error("unable to create storage client",
+		logger.With(zap.String("severity", "ERROR")).Error("unable to create storage client",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -95,7 +95,7 @@ func (c *GCSClient) Close(ctx context.Context) error {
 
 	err := c.gcsClient.Close()
 	if err != nil {
-		c.logger.Error("unable to close GCS client",
+		c.logger.With(zap.String("severity", "ERROR")).Error("unable to close GCS client",
 			zap.String("ApplicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))

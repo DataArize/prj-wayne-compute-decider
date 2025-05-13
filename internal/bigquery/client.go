@@ -27,7 +27,7 @@ type Client struct {
 func NewClient(ctx context.Context, logger *zap.Logger, projectId string, traceId string) (*Client, error) {
 	client, err := bq.NewClient(ctx, projectId)
 	if err != nil {
-		logger.Error("unable to create bigquery client",
+		logger.With(zap.String("severity", "ERROR")).Error("unable to create bigquery client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", traceId),
 			zap.Error(err))
@@ -54,7 +54,7 @@ func (c *Client) LogAuditData(ctx context.Context, event model.AuditEvent) error
 
 	err := inserter.Put(ctx, []*model.AuditEvent{&event})
 	if err != nil {
-		c.logger.Info("unable to persist data into bigquery",
+		c.logger.With(zap.String("severity", "ERROR")).Error("unable to persist data into bigquery",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))
@@ -73,7 +73,7 @@ func (c *Client) ContractFileQueue(ctx context.Context, event model.ContractFile
 
 	err := inserter.Put(ctx, []*model.ContractFileEvent{&event})
 	if err != nil {
-		c.logger.Info("unable to persist data into bigquery",
+		c.logger.With(zap.String("severity", "ERROR")).Error("unable to persist data into bigquery",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))
@@ -87,7 +87,7 @@ func (c *Client) Close(ctx context.Context) error {
 
 	err := c.client.Close()
 	if err != nil {
-		c.logger.Info("unable to close bigquery client",
+		c.logger.With(zap.String("severity", "ERROR")).Error("unable to close bigquery client",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", c.traceId),
 			zap.Error(err))

@@ -138,7 +138,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.CLOUD_RUN_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -166,7 +166,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileSizeBytes, request.RequestUUID}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.GZ_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -193,7 +193,7 @@ func (p *Processor) decideCompute(ctx context.Context, request model.FileInfo) e
 		args := []string{request.TraceId, request.FIleUrl, request.FileName}
 		err := p.compute.TriggerFileStreamerJob(ctx, p.projectId, p.projectRegion, constants.ZIP_DOWNLOADER_JOB_NAME, args)
 		if err != nil {
-			p.logger.Error("error triggering cloud run job",
+			p.logger.With(zap.String("severity", "ERROR")).Error("error triggering cloud run job",
 				zap.String("applicationName", constants.APPLICATION_NAME),
 				zap.String("traceId", p.traceId),
 				zap.String("fileSize", request.FileSize),
@@ -225,7 +225,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 
 	parsedUrl, err := url.Parse(fileUrl)
 	if err != nil {
-		p.logger.Error("Invalid URL",
+		p.logger.With(zap.String("severity", "ERROR")).Error("Invalid URL",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -247,7 +247,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	req, err := http.NewRequestWithContext(ctx, constants.HEAD, fileUrl, nil)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to create HEAD request URL: %s, error : %v", fileUrl, err)
-		p.logger.Error("unable to create HEAD Request",
+		p.logger.With(zap.String("severity", "ERROR")).Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -257,7 +257,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		info.Error = fmt.Sprintf("Failed to execute HEAD request URL: %s, error : %v", fileUrl, err)
-		p.logger.Error("unable to create HEAD Request",
+		p.logger.With(zap.String("severity", "ERROR")).Error("unable to create HEAD Request",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
@@ -277,7 +277,7 @@ func (p *Processor) analyzeFile(ctx context.Context, fileUrl string, requestUUID
 	fileName, err := p.getFileNameFromURL(fileUrl)
 	if err != nil {
 		info.Error = fmt.Sprintf("error extracting file name, fileURL: %s, error: %v", fileUrl, err)
-		p.logger.Error("error extracting file name",
+		p.logger.With(zap.String("severity", "ERROR")).Error("error extracting file name",
 			zap.String("applicationName", constants.APPLICATION_NAME),
 			zap.String("traceId", p.traceId),
 			zap.Error(err))
